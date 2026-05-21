@@ -105,3 +105,25 @@ export async function getAllIssues(req: Request, res: Response, next: NextFuncti
     next(err);
   }
 }
+
+export async function getSingleIssue(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query<IssueRow>(
+      'SELECT * FROM issues WHERE id = $1',
+      [id]
+    );
+
+    if (!result.rowCount || result.rowCount === 0) {
+      sendError(res, StatusCodes.NOT_FOUND, 'Issue not found.');
+      return;
+    }
+
+    const [issueWithReporter] = await attachReporters(result.rows);
+
+    sendSuccess(res, StatusCodes.OK, 'Issue fetched successfully', issueWithReporter);
+  } catch (err) {
+    next(err);
+  }
+}
