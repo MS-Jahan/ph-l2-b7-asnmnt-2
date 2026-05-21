@@ -74,7 +74,8 @@ export async function login(req: Request, res: Response, next: NextFunction) {
     }
 
     const payload = { id: user.id, name: user.name, role: user.role };
-    const token = jwt.sign(payload, 'devpulse_jwt_secret_change_later', { expiresIn: '7d' });
+    const secret = process.env.JWT_SECRET as string;
+    const token = jwt.sign(payload, secret, { expiresIn: '7d' });
 
     sendSuccess(res, StatusCodes.OK, 'Login successful', {
       token,
