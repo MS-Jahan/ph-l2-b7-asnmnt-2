@@ -160,6 +160,10 @@ export async function updateIssue(req: Request, res: Response, next: NextFunctio
         sendError(res, StatusCodes.CONFLICT, 'You can only edit issues that are still open.');
         return;
       }
+      if (status) {
+        sendError(res, StatusCodes.FORBIDDEN, 'Contributors cannot change the status of an issue.');
+        return;
+      }
     }
 
     if (title && title.length > 150) {
