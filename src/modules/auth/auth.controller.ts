@@ -61,7 +61,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
     );
 
     if (!result.rowCount || result.rowCount === 0) {
-      sendError(res, StatusCodes.UNAUTHORIZED, 'User with this email does not exist.');
+      sendError(res, StatusCodes.UNAUTHORIZED, 'Invalid email or password.');
       return;
     }
 
@@ -69,7 +69,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
     const passwordMatch = await bcrypt.compare(password, user.password);
 
     if (!passwordMatch) {
-      sendError(res, StatusCodes.UNAUTHORIZED, 'Incorrect password.');
+      sendError(res, StatusCodes.UNAUTHORIZED, 'Invalid email or password.');
       return;
     }
 
