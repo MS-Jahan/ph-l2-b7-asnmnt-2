@@ -2,7 +2,7 @@ import { Request, Response, NextFunction } from 'express';
 import { StatusCodes } from 'http-status-codes';
 import pool from '../../config/db';
 import { sendSuccess, sendError } from '../../utils/response';
-import { AuthRequest, IssueRow } from '../../types';
+import { AuthRequest, IssueRow, ReporterInfo } from '../../types';
 
 export async function createIssue(req: Request, res: Response, next: NextFunction) {
   try {
@@ -52,19 +52,19 @@ async function attachReporters(issues: IssueRow[]) {
 
   const reporterIds = [...new Set(issues.map((i) => i.reporter_id))];
 
-  const usersResult = await pool.query<{ id: number; name: string; role: string }>(
+  const usersResult = await pool.query<ReporterInfo>(
     'SELECT id, name, role FROM users WHERE id = ANY($1)',
     [reporterIds]
   );
 
-  const reporterMap = new Map<number, { id: number; name: string; role: string }>();
+  const reporterMap = new Map<number, ReporterInfo>();
   for (const user of usersResult.rows) {
     reporterMap.set(user.id, user);
   }
 
-  return issues.map((issue) => ({
-    ...issue,
-    reporter: reporterMap.get(issue.reporter_id) ?? null,
+  return issues.map(({ reporter_id, ...rest }) => ({
+    ...rest,
+    reporter: reporterMap.get(reporter_id) ?? null,
   }));
 }
 
