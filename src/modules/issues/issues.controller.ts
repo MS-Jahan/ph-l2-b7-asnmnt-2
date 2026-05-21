@@ -127,3 +127,76 @@ export async function getSingleIssue(req: Request, res: Response, next: NextFunc
     next(err);
   }
 }
+
+export async function updateIssue(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { id } = req.params;
+    const { user } = req as AuthRequest;
+    const { title, description, type, status } = req.body as {
+      title?: string;
+      description?: string;
+      type?: string;
+      status?: string;
+    };
+
+    const issueResult = await pool.query<IssueRow>(
+      'SELECT * FROM issues WHERE id = $1',
+      [id]
+    );
+
+    if (!issueResult.rowCount || issueResult.rowCount === 0) {
+      sendError(res, StatusCodes.NOT_FOUND, 'Issue not found.');
+      return;
+    }
+
+    const issue = issueResult.rows[0];
+
+    if (user.role === 'contributor') {
+      if (issue.reporter_id !== user.id) {
+        sendError(res, StatusCodes.FORBIDDEN, 'You can only edit your own issues.');
+        return;
+      }
+      if (issue.status !== 'open') {
+        sendError(res, StatusCodes.CONFLICT, 'You can only edit issues that are still open.');
+        return;
+      }
+    }
+
+    if (title && title.length > 150) {
+      sendError(res, StatusCodes.BAD_REQUEST, 'title must not exceed 150 characters.');
+      return;
+    }
+
+    if (description && description.length < 20) {
+      sendError(res, StatusCodes.BAD_REQUEST, 'description must be at least 20 characters.');
+      return;
+    }
+
+    if (type && !['bug', 'feature_request'].includes(type)) {
+      sendError(res, StatusCodes.BAD_REQUEST, 'type must be either "bug" or "feature_request".');
+      return;
+    }
+
+    if (status && !['open', 'in_progress', 'resolved'].includes(status)) {
+      sendError(res, StatusCodes.BAD_REQUEST, 'status must be "open", "in_progress", or "resolved".');
+      return;
+    }
+
+    const updatedTitle = title ?? issue.title;
+    const updatedDescription = description ?? issue.description;
+    const updatedType = type ?? issue.type;
+    const updatedStatus = status ?? issue.status;
+
+    const updated = await pool.query<IssueRow>(
+      `UPDATE issues
+       SET title = $1, description = $2, type = $3, status = $4, updated_at = NOW()
+       WHERE id = $5
+       RETURNING *`,
+      [updatedTitle, updatedDescription, updatedType, updatedStatus, id]
+    );
+
+    sendSuccess(res, StatusCodes.OK, 'Issue updated successfully', updated.rows[0]);
+  } catch (err) {
+    next(err);
+  }
+}
