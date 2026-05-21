@@ -46,3 +46,62 @@ export async function createIssue(req: Request, res: Response, next: NextFunctio
     next(err);
   }
 }
+
+async function attachReporters(issues: IssueRow[]) {
+  if (issues.length === 0) return [];
+
+  const reporterIds = [...new Set(issues.map((i) => i.reporter_id))];
+
+  const usersResult = await pool.query<{ id: number; name: string; role: string }>(
+    'SELECT id, name, role FROM users WHERE id = ANY($1)',
+    [reporterIds]
+  );
+
+  const reporterMap = new Map<number, { id: number; name: string; role: string }>();
+  for (const user of usersResult.rows) {
+    reporterMap.set(user.id, user);
+  }
+
+  return issues.map((issue) => ({
+    ...issue,
+    reporter: reporterMap.get(issue.reporter_id) ?? null,
+  }));
+}
+
+export async function getAllIssues(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { sort, type, status } = req.query as {
+      sort?: string;
+      type?: string;
+      status?: string;
+    };
+
+    const conditions: string[] = [];
+    const values: string[] = [];
+    let paramIndex = 1;
+
+    if (type && ['bug', 'feature_request'].includes(type)) {
+      conditions.push(`type = $${paramIndex++}`);
+      values.push(type);
+    }
+
+    if (status && ['open', 'in_progress', 'resolved'].includes(status)) {
+      conditions.push(`status = $${paramIndex++}`);
+      values.push(status);
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const orderClause = sort === 'oldest' ? 'ORDER BY created_at ASC' : 'ORDER BY created_at DESC';
+
+    const result = await pool.query<IssueRow>(
+      `SELECT * FROM issues ${whereClause} ${orderClause}`,
+      values
+    );
+
+    const issuesWithReporters = await attachReporters(result.rows);
+
+    sendSuccess(res, StatusCodes.OK, 'Issues fetched successfully', issuesWithReporters);
+  } catch (err) {
+    next(err);
+  }
+}
