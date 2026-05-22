@@ -60,6 +60,7 @@ export async function login(req: Request, res: Response, next: NextFunction) {
       [email]
     );
 
+    // generic message for both cases, don't reveal whether the email exists
     if (!result.rowCount || result.rowCount === 0) {
       sendError(res, StatusCodes.UNAUTHORIZED, 'Invalid email or password.');
       return;

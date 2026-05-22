@@ -47,6 +47,7 @@ export async function createIssue(req: Request, res: Response, next: NextFunctio
   }
 }
 
+// batch fetch reporters in a single query, assignment forbids SQL JOINs
 async function attachReporters(issues: IssueRow[]) {
   if (issues.length === 0) return [];
 
@@ -151,6 +152,7 @@ export async function updateIssue(req: Request, res: Response, next: NextFunctio
 
     const issue = issueResult.rows[0];
 
+    // contributors can only edit their own issues and only while still open
     if (user.role === 'contributor') {
       if (issue.reporter_id !== user.id) {
         sendError(res, StatusCodes.FORBIDDEN, 'You can only edit your own issues.');

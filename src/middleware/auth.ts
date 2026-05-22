@@ -5,6 +5,7 @@ import { UserPayload, AuthRequest } from '../types';
 import { sendError } from '../utils/response';
 
 export function authenticate(req: Request, res: Response, next: NextFunction) {
+  // spec format is the raw JWT (no "Bearer " prefix)
   const token = req.headers['authorization'];
 
   if (!token) {
