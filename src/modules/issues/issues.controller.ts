@@ -204,3 +204,23 @@ export async function updateIssue(req: Request, res: Response, next: NextFunctio
     next(err);
   }
 }
+
+export async function deleteIssue(req: Request, res: Response, next: NextFunction) {
+  try {
+    const { id } = req.params;
+
+    const result = await pool.query(
+      'DELETE FROM issues WHERE id = $1 RETURNING id',
+      [id]
+    );
+
+    if (!result.rowCount || result.rowCount === 0) {
+      sendError(res, StatusCodes.NOT_FOUND, 'Issue not found.');
+      return;
+    }
+
+    sendSuccess(res, StatusCodes.OK, 'Issue deleted successfully');
+  } catch (err) {
+    next(err);
+  }
+}
