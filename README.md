@@ -2,7 +2,7 @@
 
 > A collaborative backend for software teams to report bugs, suggest features and track resolutions.
 
-Live API: will add later here.
+**Live API**: https://ph-l2-b7-asnmnt-2.vercel.app
 
 ---
 
